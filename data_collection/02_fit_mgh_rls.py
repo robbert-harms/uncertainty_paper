@@ -15,20 +15,11 @@ model_names = [
     'BallStick_r2',
     'NODDI',
     'Tensor',
+    'Kurtosis',
+    'BinghamNODDI_r1',
     'CHARMED_r1',
     'CHARMED_r2'
 ]
-
-nmr_samples = {
-    'BallStick_r1': 11000,
-    'BallStick_r2': 15000,
-    'BallStick_r3': 25000,
-    'NODDI': 15000,
-    'Tensor': 13000,
-    'CHARMED_r1': 17000,
-    'CHARMED_r2': 25000,
-    'CHARMED_r3': 30000
-}
 
 
 class RheinLandBatchProfile(SimpleBatchProfile):
@@ -77,18 +68,9 @@ def func(subject_info, output_path):
     for model_name in model_names:
         print(subject_id, model_name)
 
-        starting_point = mdt.fit_model(model_name + ' (Cascade)',
-                                       subject_info.get_input_data(),
-                                       output_path + '/' + subject_id)
-
-        mdt.sample_model(model_name,
-                         subject_info.get_input_data(),
-                         output_path + '/' + subject_id,
-                         initialization_data={'inits': starting_point},
-                         store_samples=False,
-                         nmr_samples=nmr_samples[model_name],
-                         burnin=0,
-                         thinning=0)
+        mdt.fit_model(model_name + ' (Cascade)',
+                      subject_info.get_input_data(),
+                      output_path + '/' + subject_id)
 
 
 mdt.batch_apply(func, '/home/robbert/phd-data/rheinland/',
