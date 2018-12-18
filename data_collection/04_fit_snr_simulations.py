@@ -1,6 +1,4 @@
 import mdt
-from mdt import config_context
-from mot.sample.base import SimpleSampleOutput
 
 __author__ = 'Robbert Harms'
 __date__ = "2018-08-14"
@@ -20,16 +18,19 @@ nmr_samples = {
     'Tensor': 13000,
     'CHARMED_r1': 17000,
     'CHARMED_r2': 25000,
-    'CHARMED_r3': 30000
+    'CHARMED_r3': 25000
 }
 
 protocols = ['hcp_mgh_1003', 'rheinland_v3a_1_2mm']
 noise_snrs = [2, 5, 10, 20, 30, 40, 50]
-model_names = ['BallStick_r1',
-               # 'BallStick_r2', 'BallStick_r3',
-               # 'NODDI', 'BinghamNODDI_r1', 'Tensor',
-               # 'CHARMED_r1', 'CHARMED_r2', 'CHARMED_r3'
-               ]
+model_names = [
+    'BallStick_r1',
+    'BallStick_r2', 'BallStick_r3',
+    'NODDI', 'BinghamNODDI_r1', 'Tensor',
+    'CHARMED_r1',
+    'CHARMED_r2',
+    'CHARMED_r3'
+]
 
 for trial_ind in range(nmr_trials):
     for model_name in model_names:
@@ -57,7 +58,7 @@ for trial_ind in range(nmr_trials):
                     input_data,
                     current_pjoin('output', str(snr), str(trial_ind)))
 
-                with config_context('''
+                with mdt.config_context('''
                     processing_strategies:
                         sampling:
                             max_nmr_voxels: 5000

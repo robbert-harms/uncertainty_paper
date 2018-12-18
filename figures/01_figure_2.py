@@ -67,7 +67,7 @@ def get_samples(dataset_name, model_name, voxel_volume_ind):
         return samples['w_in0.w'][roi_ind]
 
 
-def get_mode_and_std(dataset_name, model_name):
+def get_mle_results(dataset_name, model_name):
     maps = mdt.load_volume_maps(output_base_pjoin(dataset_name, model_name))
 
     if model_name == 'Tensor':
@@ -86,7 +86,7 @@ def get_mode_and_std(dataset_name, model_name):
         return maps['w_in0.w'], maps['w_in0.w.std']
 
 
-def get_mean_and_std(dataset_name, model_name):
+def get_mcmc_results(dataset_name, model_name):
     model_defined_maps = mdt.load_volume_maps(output_base_pjoin(
         dataset_name, model_name, 'samples', 'model_defined_maps'))
     univariate_normal_maps = mdt.load_volume_maps(output_base_pjoin(
@@ -108,29 +108,29 @@ def get_mean_and_std(dataset_name, model_name):
         return univariate_normal_maps['w_in0.w'], univariate_normal_maps['w_in0.w.std']
 
 
-def plot_histogram(ax, dataset_name, model_name, samples, mode, mode_std):
+def plot_histogram(ax, dataset_name, model_name, samples, mle, mle_std):
     ax.hist(samples, 100, density=True, color='gray', edgecolor='black')
 
     fit_x_coords = np.linspace(np.min(samples)*0.99, np.max(samples) * 1.01, 300)
     fit_y_coords_sampling = norm.pdf(fit_x_coords, loc=np.mean(samples), scale=np.std(samples))
-    fit_y_coords_opt = norm.pdf(fit_x_coords, loc=mode, scale=mode_std)
+    fit_y_coords_opt = norm.pdf(fit_x_coords, loc=mle, scale=mle_std)
 
     ax.plot(fit_x_coords, fit_y_coords_opt, '#d55e00', linewidth=4)
     ax.plot(fit_x_coords, fit_y_coords_sampling, '#56b4e9', linewidth=4)
 
     ax.plot(
-        mode,
-        float(mlab.normpdf(mode, mode, mode_std)),
+        mle,
+        float(mlab.normpdf(mle, mle, mle_std)),
         color='#d55e00', marker='v', markersize=18,
-        label='Mode (MLE)')
+        label='MLE')
 
     ax.plot(
         np.mean(samples),
         float(mlab.normpdf(np.mean(samples), np.mean(samples), np.std(samples))),
         color='#56b4e9', marker='o', markersize=18,
-        label='Mean (MCMC)')
+        label='MCMC')
 
-    ax.legend(loc='upper left')
+    ax.legend(loc='upper right')
     ax.set_xlabel(map_titles[model_name] + ' (a.u.)')
     ax.set_ylabel('Frequency (a.u.)')
 
@@ -138,8 +138,8 @@ def plot_histogram(ax, dataset_name, model_name, samples, mode, mode_std):
         ax.set_xlim(ax.get_xlim()[0], 1)
 
     if dataset_name == 'rheinland' and model_name == 'BinghamNODDI_r1':
-        ax.set_xlim(0.35, 0.52)
-        ax.set_ylim(0, ax.get_ylim()[1] + 2)
+        ax.set_xlim(np.mean(samples) - 0.09, np.mean(samples) + 0.09)
+        ax.set_ylim(0, ax.get_ylim()[1])
 
     ax.get_yticklabels()[-1].set_verticalalignment('top')
 
@@ -153,24 +153,26 @@ def plot_maps(dataset_name, model_name, voxel_volume_ind, maps, out_name):
     if model_name == 'Tensor':
         scales['std_vmax'] = 0.15
 
-    maps['diff'] = np.abs(maps['mean'] - maps['mode'])
+    maps['diff'] = np.abs(maps['mcmc'] - maps['mle'])
 
     plot_config = dedent('''
         font: {{family: sans-serif, size: 20}}
-        maps_to_show: [mode, mode_std, mean, mean_std]
+        maps_to_show: [mle, mle_std, mcmc, mcmc_std]
         map_plot_options:
-          mode:
-            title: Mode (MLE)
+          mle:
+            title: FR (MLE)
             scale: {{use_max: true, use_min: true, vmax: {point_vmax}, vmin: {point_vmin}}}
-          mode_std:
-            title: Mode std. (FIM)
+            colorbar_settings: {{round_precision: 2}}
+          mle_std:
+            title: FR std. (MLE)
             scale: {{use_max: true, use_min: true, vmax: {std_vmax}, vmin: {std_vmin}}}
             colorbar_settings: {{round_precision: 3}}
-          mean:
-            title: Mean (MCMC)
+          mcmc:
+            title: FR (MCMC)
             scale: {{use_max: true, use_min: true, vmax: {point_vmax}, vmin: {point_vmin}}}
-          mean_std:
-            title: Mean std. (MCMC)
+            colorbar_settings: {{round_precision: 2}}
+          mcmc_std:
+            title: FR std. (MCMC)
             scale: {{use_max: true, use_min: true, vmax: {std_vmax}, vmin: {std_vmin}}}
             colorbar_settings: {{round_precision: 3}}
     '''.format(map_title=map_titles[model_name], **scales))
@@ -206,6 +208,7 @@ def plot_maps(dataset_name, model_name, voxel_volume_ind, maps, out_name):
             zoom:
               p0: {x: 19, y: 6}
               p1: {x: 87, y: 97}
+            title_spacing: 0.03
         ''')
 
     mdt.view_maps(
@@ -217,21 +220,21 @@ def plot_maps(dataset_name, model_name, voxel_volume_ind, maps, out_name):
 
 def make_figure(dataset_name, model_name, voxel_volume_ind):
     samples = get_samples(dataset_name, model_name, voxel_volume_ind)
-    mode, mode_std = get_mode_and_std(dataset_name, model_name)
-    mean, mean_std = get_mean_and_std(dataset_name, model_name)
+    mle, mle_std = get_mle_results(dataset_name, model_name)
+    mcmc, mcmc_std = get_mcmc_results(dataset_name, model_name)
 
     img_output_pjoin = figure_output_pjoin.create_extended(
         '{}_{}_{}'.format(dataset_name, model_name, '_'.join(map(str, voxel_volume_ind))), make_dirs=True)
 
     set_matplotlib_font_size(18)
     fig, ax = plt.subplots(1, 1)
-    fig.set_size_inches(6.5, 7, forward=True)
-    plot_histogram(ax, dataset_name, model_name, samples, mode[voxel_volume_ind], mode_std[voxel_volume_ind])
+    fig.set_size_inches(6.9, 7, forward=True)
+    plot_histogram(ax, dataset_name, model_name, samples, mle[voxel_volume_ind], mle_std[voxel_volume_ind])
     fig.tight_layout()
     plt.savefig(img_output_pjoin('histogram.png'), dpi=80)
 
-    skull = np.where(get_mode_and_std(dataset_name, 'BallStick_r1')[1] > 0.1)
-    maps = {'mode': mode, 'mode_std': mode_std, 'mean': mean, 'mean_std': mean_std}
+    skull = np.where(get_mle_results(dataset_name, 'BallStick_r1')[1] > 0.1)
+    maps = {'mle': mle, 'mle_std': mle_std, 'mcmc': mcmc, 'mcmc_std': mcmc_std}
     for m in maps.values():
         m[skull] = 0
 
@@ -239,17 +242,20 @@ def make_figure(dataset_name, model_name, voxel_volume_ind):
 
     subprocess.Popen('''
         convert maps.png histogram.png +append intro_figure.png
-    ''', shell=True, cwd=img_output_pjoin()).wait()
+        convert intro_figure.png -splice 0x40 intro_figure.png
+        convert intro_figure.png -font /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf \\
+            -gravity center -pointsize 28 -fill '#282828' -annotate +0-300 '{model_title}' intro_figure.png
+    '''.format(model_title=model_titles[model_name]), shell=True, cwd=img_output_pjoin()).wait()
 
 
 model_names = [
-    'BallStick_r1',
-    'BallStick_r2',
-    'NODDI',
+    # 'BallStick_r1',
+    # 'BallStick_r2',
+    # 'NODDI',
     'BinghamNODDI_r1',
-    'Tensor',
-    'CHARMED_r1',
-    'CHARMED_r2'
+    # 'Tensor',
+    # 'CHARMED_r1',
+    # 'CHARMED_r2'
 ]
 
 map_titles = {
@@ -262,6 +268,19 @@ map_titles = {
     'CHARMED_r2': 'FR'
 }
 
+
+model_titles = {
+    'BallStick_r1': 'BallStick_in1',
+    'BallStick_r2': 'BallStick_in2',
+    'BallStick_r3': 'BallStick_in3',
+    'Tensor': 'Tensor',
+    'NODDI': 'NODDI',
+    'BinghamNODDI_r1': 'Bingham-NODDI',
+    'CHARMED_r1': 'CHARMED_in1',
+    'CHARMED_r2': 'CHARMED_in2',
+    'CHARMED_r3': 'CHARMED_in3'
+}
+
 for model_name in model_names:
-    make_figure('mgh', model_name, (68, 43, 0))
+    # make_figure('mgh', model_name, (68, 43, 0))
     make_figure('rheinland', model_name, (40, 79, 0))

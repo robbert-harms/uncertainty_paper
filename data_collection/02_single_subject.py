@@ -2,6 +2,7 @@ import glob
 import mdt
 import os
 from mdt.lib.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
+from mdt.lib.masking import generate_simple_wm_mask
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-11-01'
@@ -13,13 +14,24 @@ __licence__ = 'LGPL v3'
 model_names = [
     'BallStick_r1',
     'BallStick_r2',
+    'BallStick_r3',
     'NODDI',
     'Tensor',
-    'Kurtosis',
     'BinghamNODDI_r1',
-    'CHARMED_r1',
-    'CHARMED_r2'
+    'CHARMED_r1'
 ]
+
+nmr_samples = {
+    'BallStick_r1': 11000,
+    'BallStick_r2': 15000,
+    'BallStick_r3': 25000,
+    'NODDI': 15000,
+    'BinghamNODDI_r1': 20000,
+    'Tensor': 13000,
+    'CHARMED_r1': 17000,
+    'CHARMED_r2': 25000,
+    'CHARMED_r3': 25000
+}
 
 
 class RheinLandBatchProfile(SimpleBatchProfile):
@@ -68,17 +80,36 @@ def func(subject_info, output_path):
     for model_name in model_names:
         print(subject_id, model_name)
 
-        mdt.fit_model(model_name + ' (Cascade)',
-                      subject_info.get_input_data(),
-                      output_path + '/' + subject_id)
+        starting_point = mdt.fit_model(model_name,
+                                       subject_info.get_input_data(),
+                                       output_path + '/' + subject_id)
+
+        with mdt.config_context('''
+            processing_strategies:
+                sampling:
+                    max_nmr_voxels: 5000
+        '''):
+            mdt.sample_model(model_name,
+                             subject_info.get_input_data(),
+                             output_path + '/' + subject_info.subject_id,
+                             nmr_samples=nmr_samples[model_name],
+                             initialization_data={'inits': starting_point},
+                             store_samples=False)
+
+    wm_mask = generate_simple_wm_mask(os.path.join(output_path, subject_id, 'Tensor', 'Tensor.FA.nii.gz'),
+                                      subject_info.get_input_data().mask,
+                                      threshold=0.3,
+                                      median_radius=3,
+                                      nmr_filter_passes=4)
+    mdt.write_nifti(wm_mask, os.path.join(output_path, subject_id, 'wm_mask'))
 
 
 mdt.batch_apply(func, '/home/robbert/phd-data/rheinland/',
                 batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']),
-                subjects_selection=range(10),
-                extra_args=['/home/robbert/phd-data/rheinland_output/'])
+                subjects_selection=[0],
+                extra_args=['/home/robbert/phd-data/papers/uncertainty_paper/single_subject/rls/'])
 
 mdt.batch_apply(func, '/home/robbert/phd-data/hcp_mgh/',
                 batch_profile='HCP_MGH',
-                subjects_selection=range(10),
-                extra_args=['/home/robbert/phd-data/hcp_mgh_output/'])
+                subjects_selection=['mgh_1003'],
+                extra_args=['/home/robbert/phd-data/papers/uncertainty_paper/single_subject/hcp/'])

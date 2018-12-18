@@ -31,13 +31,13 @@ nmr_samples = {
     'Tensor': 13000,
     'CHARMED_r1': 17000,
     'CHARMED_r2': 25000,
-    'CHARMED_r3': 30000
+    'CHARMED_r3': 25000
 }
 
 
 def sample_subject(subject_info):
     for model_name in model_names:
-        starting_point = mdt.fit_model(model_name + ' (Cascade)',
+        starting_point = mdt.fit_model(model_name,
                                        subject_info.get_input_data(),
                                        output_path + '/' + subject_info.subject_id)
 
