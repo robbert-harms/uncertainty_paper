@@ -27,6 +27,7 @@ simulations_unweighted_signal_height = 1e4
 # noise_snrs = [2, 5, 10, 20, 30, 40, 50]
 noise_snrs = [5, 10, 20, 30, 40, 50]
 
+
 protocols = [
     'hcp_mgh_1003',
     'rheinland_v3a_1_2mm'

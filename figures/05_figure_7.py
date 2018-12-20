@@ -1,6 +1,10 @@
+from scipy.ndimage import binary_erosion
+
 import mdt
 import os
 import numpy as np
+
+from mdt.lib.masking import generate_simple_wm_mask
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-12-07'
@@ -11,38 +15,45 @@ __licence__ = 'LGPL v3'
 
 registration_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/registration/')
 
-maps_to_process = {
-    # 'Tensor': ['Tensor.FA', 'Tensor.FA.std'],
-    # 'NODDI': ['w_ic.w', 'w_ic.w.std'],
-    'BinghamNODDI_r1': ['w_in0.w', 'w_in0.w.std'],
-    # 'CHARMED_r1': ['FR', 'FR.std'],
-    # 'BallStick_r1': ['FS', 'FS.std'],
-    # 'BallStick_r2': ['FS', 'FS.std'],
-    # 'BallStick_r3': ['FS', 'FS.std']
+mask = mdt.load_brain_mask('/usr/share/data/fsl-mni152-templates/FMRIB58_FA_1mm.nii.gz')
+mask = binary_erosion(mask, iterations=1)
+
+subjects_to_filter = [
+    # 'mgh_1002',
+    # 'mgh_1004',
+    'mgh_1008',
+    'mgh_1009',
+    # 'mgh_1012',
+    'mgh_1013',
+    # 'mgh_1015',
+    'mgh_1017',
+    # 'mgh_1021',
+    # 'mgh_1022',
+    'mgh_1032'
+]
+
+# subjects_to_filter = []
+
+map_names = {
+    'Tensor': 'Tensor.FA',
+    'NODDI': 'w_ic.w',
+    'BinghamNODDI_r1': 'w_in0.w',
+    'CHARMED_r1': 'FR',
+    'BallStick_r1': 'FS',
+    'BallStick_r2': 'FS',
+    'BallStick_r3': 'FS'
 }
 
 
-def get_subject_maps(model_name, map_name):
+def _get_subject_maps(model_name, map_name):
     data_name = '{}_{}'.format(model_name, map_name)
     map_list = []
     for subject in os.listdir(registration_pjoin()):
+        if subject in subjects_to_filter:
+            continue
         data = mdt.load_nifti(registration_pjoin(subject, 'warped_' + data_name)).get_data()
         map_list.append(data)
     return map_list
-
-
-def regular_average():
-    result = {}
-    for model_name, maps in maps_to_process.items():
-        map_name = maps[0]
-        data_name = '{}_{}'.format(model_name, map_name)
-
-        subject_volumes = np.stack(get_subject_maps(model_name, map_name), axis=-1)
-
-        result[data_name] = np.mean(subject_volumes, axis=-1)
-        result[data_name + '.std'] = np.std(subject_volumes, axis=-1)
-
-    return result
 
 
 def _weighted_avg_and_std(values, weights):
@@ -57,53 +68,61 @@ def _weighted_avg_and_std(values, weights):
     """
     average = np.average(values, weights=weights, axis=-1)[..., None]
     variance = np.average((values-average)**2, weights=weights, axis=-1)
-    return average, np.sqrt(variance)
+    return average[..., 0], np.sqrt(variance)
 
 
-def weighted_average():
-    result = {}
-    for model_name, maps in maps_to_process.items():
-        subject_volumes = np.stack(get_subject_maps(model_name, maps[0]), axis=-1)
-        subject_volumes_stds = np.stack(get_subject_maps(model_name, maps[1]), axis=-1)
+def regular_average(model_name):
+    subject_volumes = np.stack(_get_subject_maps(model_name, map_names[model_name]), axis=-1)
+    return np.mean(subject_volumes, axis=-1), np.std(subject_volumes, axis=-1)
 
-        stds_square = subject_volumes_stds**2
-        stds_square[stds_square < 1e-4] = 1e-4
 
-        weights = 1. / stds_square
+def weighted_average(model_name):
+    map_name = map_names[model_name]
+    subject_volumes = np.stack(_get_subject_maps(model_name, map_name), axis=-1)
+    subject_volumes_stds = np.stack(_get_subject_maps(model_name, map_name + '.std'), axis=-1)
 
-        average, stds = _weighted_avg_and_std(subject_volumes, weights)
+    stds_square = subject_volumes_stds**2
+    stds_square[stds_square < 1e-4] = 1e-4
 
-        data_name = '{}_{}'.format(model_name, maps[0])
-        result[data_name] = average
-        result[data_name + '.std'] = stds
-    return result
+    weights = 1. / stds_square
 
+    return _weighted_avg_and_std(subject_volumes, weights)
+
+
+# fa_average, _ = regular_average('Tensor')
+# wm_mask = generate_simple_wm_mask(fa_average, mask, median_radius=1, nmr_filter_passes=2)
+
+# mdt.view_maps({'wm_mask': wm_mask, 'data': fa_average}, config='''
+# maps_to_show: [data, wm_mask]
+# slice_index: 90
+# ''')
+# exit()
+
+model_name = 'BinghamNODDI_r1'
+map_name = map_names[model_name]
 
 all_maps = {}
-for key, value in regular_average().items():
-    all_maps['regular_' + key] = np.squeeze(value)
 
-for key, value in weighted_average().items():
-    all_maps['weighted_' + key] = np.squeeze(value)
+reg_mean, reg_std = regular_average(model_name)
+all_maps['regular_{}_{}'.format(model_name, map_name)] = reg_mean
+all_maps['regular_{}_{}.std'.format(model_name, map_name)] = reg_std
 
-for model_name, maps in maps_to_process.items():
-    all_maps['point_diff_' + model_name] = \
-        all_maps['regular_{}_{}'.format(model_name, maps[0])] - all_maps['weighted_{}_{}'.format(model_name, maps[0])]
+wgh_mean, wgh_std = weighted_average(model_name)
+all_maps['weighted_{}_{}'.format(model_name, map_name)] = wgh_mean
+all_maps['weighted_{}_{}.std'.format(model_name, map_name)] = wgh_std
 
-    all_maps['std_diff_' + model_name] = \
-        all_maps['regular_{}_{}'.format(model_name, maps[1])] - all_maps['weighted_{}_{}'.format(model_name, maps[1])]
+all_maps['point_diff_' + model_name] = 100 * (wgh_mean - reg_mean) / reg_mean
+all_maps['std_diff_' + model_name] = 100 * (wgh_std - reg_std) / reg_std
 
-    all_maps['weighted_diff_smaller_' + model_name] = \
-        all_maps['regular_{}_{}'.format(model_name, maps[1])] >= all_maps['weighted_{}_{}'.format(model_name, maps[1])]
+# mask = wgh_mean > 0.1
+# mask = binary_erosion(mask, iterations=2)
 
-    all_maps['weighted_diff_smaller_' + model_name] = all_maps['weighted_diff_smaller_' + model_name].astype(np.int16)
+mdt.apply_mask(all_maps, mask)
 
-    all_maps['weighted_diff_smaller_' + model_name][
-        all_maps['regular_{}_{}'.format(model_name, maps[1])]
-        < all_maps['weighted_{}_{}'.format(model_name, maps[1])]] = -1
+all_maps['std_diff_' + model_name] = np.ma.masked_where(mask < 1, all_maps['std_diff_' + model_name])
+all_maps['point_diff_' + model_name] = np.ma.masked_where(mask < 1, all_maps['point_diff_' + model_name])
 
 
-mdt.apply_mask(all_maps, '/usr/share/data/fsl-mni152-templates/FMRIB58_FA_1mm.nii.gz')
 mdt.view_maps(
     all_maps,
     # save_filename='/tmp/uncertainty_paper/bingham_noddi.png',
@@ -111,15 +130,59 @@ mdt.view_maps(
 annotations:
 - arrow_width: 1.0
   font_size: null
-  marker_size: 1.0
-  text_distance: 0.12
+  marker_size: 3.0
+  text_distance: 0.08
   text_location: upper left
-  text_template: '{voxel_index}
-
-    {value:.3g}'
-  voxel_index: [77, 153, 90]
+  text_template: '{value:.2g}'
+  voxel_index: [60, 149, 90]
+colorbar_settings:
+  location: right
+  nmr_ticks: 4
+  power_limits: [-3, 4]
+  round_precision: 3
+  visible: true
+colormap_masked_color: k
+font: {family: sans-serif, size: 21}
+grid_layout:
+- Rectangular
+- cols: null
+  rows: 2
+  spacings: {bottom: 0.03, hspace: 0.15, left: 0.1, right: 0.86, top: 0.97, wspace: 0.4}
+map_plot_options:
+  point_diff_BinghamNODDI_r1:
+    colorbar_settings: {location: null, nmr_ticks: 5, power_limits: null, round_precision: null,
+      visible: null}
+    colormap: BrBG
+    scale: {use_max: true, use_min: true, vmax: 10.0, vmin: -10.0}
+    title: '% difference mean'
+  regular_BinghamNODDI_r1_w_in0.w:
+    colorbar_settings: {location: null, nmr_ticks: null, power_limits: null, round_precision: null,
+      visible: false}
+    scale: {use_max: true, use_min: true, vmax: 0.8, vmin: 0.2}
+    title: Regular mean
+  regular_BinghamNODDI_r1_w_in0.w.std:
+    colorbar_settings: {location: null, nmr_ticks: null, power_limits: null, round_precision: null,
+      visible: false}
+    scale: {use_max: true, use_min: true, vmax: 0.15, vmin: 0.0}
+    title: Regular std.
+  std_diff_BinghamNODDI_r1:
+    colormap: BrBG
+    scale: {use_max: true, use_min: true, vmax: 20.0, vmin: -20.0}
+    title: '% difference std.'
+    colorbar_settings: {location: null, nmr_ticks: 5, power_limits: null, round_precision: null,
+      visible: null}
+  weighted_BinghamNODDI_r1_w_in0.w:
+    scale: {use_max: true, use_min: true, vmax: 0.8, vmin: 0.2}
+    title: Weighted mean
+  weighted_BinghamNODDI_r1_w_in0.w.std:
+    scale: {use_max: true, use_min: true, vmax: 0.15, vmin: 0.0}
+    title: Weighted std.
+maps_to_show: [regular_BinghamNODDI_r1_w_in0.w, weighted_BinghamNODDI_r1_w_in0.w,
+  point_diff_BinghamNODDI_r1, regular_BinghamNODDI_r1_w_in0.w.std, weighted_BinghamNODDI_r1_w_in0.w.std,
+  std_diff_BinghamNODDI_r1]
 slice_index: 90
 zoom:
-  p0: {x: 22, y: 17}
+  p0: {x: 22, y: 24}
   p1: {x: 156, y: 192}
+
 ''')
