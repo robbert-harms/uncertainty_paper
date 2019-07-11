@@ -41,24 +41,30 @@ model_names = [
     'NODDI',
     'BinghamNODDI_r1',
     'CHARMED_r1',
-    'CHARMED_r2',
-    'CHARMED_r3'
 ]
 
 protocol_names = {'hcp_mgh_1003': 'HCP MGH',
                   'rheinland_v3a_1_2mm': 'RLS-pilot'}
 
 model_titles = {
-    'BallStick_r1': 'BallStick_in1',
-    'BallStick_r2': 'BallStick_in2',
-    'BallStick_r3': 'BallStick_in3',
-    'Tensor': 'Tensor',
-    'NODDI': 'NODDI',
-    'BinghamNODDI_r1': 'Bingham NODDI',
-    'CHARMED_r1': 'CHARMED_in1',
-    'CHARMED_r2': 'CHARMED_in2',
-    'CHARMED_r3': 'CHARMED_in3'
+    'BallStick_r1': 'BallStick_in1 - FS (std.)',
+    'BallStick_r2': 'BallStick_in2 - FS (std.)',
+    'BallStick_r3': 'BallStick_in3 - FS (std.)',
+    'Tensor': 'Tensor - FA (std.)',
+    'NODDI': 'NODDI - FR (std.)',
+    'BinghamNODDI_r1': 'Bingham-NODDI - FR (std.)',
+    'CHARMED_r1': 'CHARMED_in1 - FR (std.)'
 }
+#
+# y_lims = {
+#     'BallStick_r1': 0.061,
+#     'BallStick_r2': 0.09,
+#     'BallStick_r3': 0.11,
+#     'Tensor': 0.32,
+#     'NODDI': 0.5,
+#     'BinghamNODDI_r1': 0.07,
+#     'CHARMED_r1': 0.07
+# }
 
 
 def set_matplotlib_font_size(font_size):
@@ -90,10 +96,6 @@ def get_mean_std(protocol_name, model_name, snr, trial_ind):
         return univariate_normal_maps['w_ic.w.std']
     elif model_name == 'CHARMED_r1':
         return model_defined_maps['FR.std']
-    elif model_name == 'CHARMED_r2':
-        return model_defined_maps['FR.std']
-    elif model_name == 'CHARMED_r3':
-        return model_defined_maps['FR.std']
     elif model_name == 'BinghamNODDI_r1':
         return univariate_normal_maps['w_in0.w.std']
 
@@ -113,10 +115,6 @@ def get_mode_std(protocol_name, model_name, snr, trial_ind):
     elif model_name == 'NODDI':
         return maps['w_ic.w.std']
     elif model_name == 'CHARMED_r1':
-        return maps['FR.std']
-    elif model_name == 'CHARMED_r2':
-        return maps['FR.std']
-    elif model_name == 'CHARMED_r3':
         return maps['FR.std']
     elif model_name == 'BinghamNODDI_r1':
         return maps['w_in0.w.std']
@@ -149,6 +147,7 @@ def get_results():
                             std_data = get_mode_std(protocol, model, snr, trial_ind)
 
                         std_data_regulated = std_data[np.isfinite(std_data) & (std_data < 1)]
+
                         trial_mean_stds.append(np.mean(std_data_regulated))
                         trial_std_stds.append(np.std(std_data_regulated))
 
@@ -216,6 +215,10 @@ def create_figures(results):
                 plot_ind += 1
 
             # axis.legend()
+        # axis.set_ylim(axis.get_ylim()[0], y_lims[model])
+        print(model, axis.get_ylim())
+
+
         plt.gcf().subplots_adjust(bottom=0.15, top=0.9, left=0.18, right=0.94)
         plt.savefig(figure_output_pjoin('{}.png'.format(model)), dpi=80)
         plt.close()
@@ -224,11 +227,11 @@ def create_figures(results):
     ax = fig.add_subplot(111)
     plot_ind = 0
     for protocol_ind, protocol in enumerate(protocols):
-        for method in ['optimization', 'sample']:
+        for method in ['MLE', 'MCMC']:
             ax.plot(range(10), pylab.randn(10), range(10), pylab.randn(10),
                     color=colors[plot_ind],
                     linestyle=linestyles[plot_ind],
-                    label='{} - {}'.format(protocol_names[protocol], method.capitalize()))
+                    label='{} - {}'.format(protocol_names[protocol], method))
             plot_ind += 1
 
     figlegend = plt.figure(figsize=(5, 5))

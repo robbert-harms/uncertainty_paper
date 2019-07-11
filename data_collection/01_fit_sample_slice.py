@@ -49,4 +49,4 @@ def sample_subject(subject_info):
                          store_samples=True)
 
 
-mdt.batch_apply(sample_subject, input_path)
+mdt.batch_apply(input_path, sample_subject)

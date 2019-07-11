@@ -85,44 +85,40 @@ def get_registration_commands(output_pjoin):
 
 def check_registration():
     map_configs = ''
-    fa_maps = {}
+    maps = {}
     for subject in os.listdir(output_pjoin()):
-        fa_maps[subject] = mdt.load_nifti(output_pjoin(subject, 'warped_Tensor_Tensor.FA.nii.gz')).get_data()
-        # map_configs += '''
-        # {}:
-        #     scale: {{use_max: true, use_min: true, vmax: 0.1, vmin: 0.0}}
-        # '''.format(subject)
+        fa_map = mdt.load_nifti(output_pjoin(subject, 'warped_Tensor_Tensor.FA')).get_data()
+        maps[subject] = fa_map
+        map_configs += '''
+            {}:
+                scale: {{use_max: true, use_min: true, vmax: 0.5, vmin: 0.0}}
+        '''.format(subject)
 
     config = '''
-    colorbar_settings:
-      location: right
-      nmr_ticks: 4
-      power_limits: [-3, 4]
-      round_precision: 3
-      visible: false
-    grid_layout:
-    - Rectangular
-    - cols: null
-      rows: 4
-      spacings: {bottom: 0.03, hspace: 0.15, left: 0.1, right: 0.86, top: 0.97, wspace: 0.4}
-    maps_to_show: [mgh_1003, mgh_1019, mgh_1015, mgh_1031, mgh_1023, mgh_1029, mgh_1002,
-      mgh_1007, mgh_1027, mgh_1022, mgh_1024, mgh_1011, mgh_1034, mgh_1017, mgh_1026,
-      mgh_1010, mgh_1009, mgh_1004, mgh_1018, mgh_1013, mgh_1020, mgh_1030, mgh_1005,
-      mgh_1032, mgh_1014, mgh_1006, mgh_1025, mgh_1008, mgh_1028, mgh_1012, mgh_1033,
-      mgh_1021, mgh_1001, mgh_1016]
-    slice_index: 90
-    zoom:
-      p0: {x: 16, y: 14}
-      p1: {x: 161, y: 200}
-    
+        colorbar_settings:
+          location: right
+          nmr_ticks: 4
+          power_limits: [-3, 4]
+          round_precision: 3
+          visible: false
+        grid_layout:
+        - Rectangular
+        - cols: null
+          rows: 4
+          spacings: {bottom: 0.03, hspace: 0.15, left: 0.1, right: 0.86, top: 0.97, wspace: 0.4}
+        slice_index: 90
+        zoom:
+          p0: {x: 16, y: 14}
+          p1: {x: 161, y: 200}
+        colormap_masked_color: 'k'
+        
     '''
-    if map_configs:
-        config += '''
-    map_plot_options:
-    ''' + map_configs + '''
+    config += '''
+        map_plot_options:
+        ''' + map_configs + '''
+        maps_to_show: [''' + ', '.join(sorted(maps)) + '''] 
     '''
-
-    mdt.view_maps(fa_maps, config=config)
+    mdt.view_maps(maps, config=config)
 
 
 # copy_maps(opt_pjoin, output_pjoin)

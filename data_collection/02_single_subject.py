@@ -3,6 +3,8 @@ import mdt
 import os
 from mdt.lib.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
 from mdt.lib.masking import generate_simple_wm_mask
+from mot.stats import gaussian_overlapping_coefficient
+import numpy as np
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-11-01'
@@ -64,7 +66,7 @@ class RheinLandBatchProfile(SimpleBatchProfile):
                     protocol_fname = glob.glob(subject_pjoin('*prtcl'))[0]
                     protocol_loader = BatchFitProtocolLoader(subject_pjoin(), protocol_fname=protocol_fname)
 
-                    subjects.append(SimpleSubjectInfo(subject_pjoin(),
+                    subjects.append(SimpleSubjectInfo(data_folder, subject_pjoin(),
                                                       directory + '_' + resolution,
                                                       dwi_fname, protocol_loader, mask_fname))
 
@@ -104,12 +106,9 @@ def func(subject_info, output_path):
     mdt.write_nifti(wm_mask, os.path.join(output_path, subject_id, 'wm_mask'))
 
 
-mdt.batch_apply(func, '/home/robbert/phd-data/rheinland/',
-                batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']),
-                subjects_selection=[0],
+mdt.batch_apply('/home/robbert/phd-data/rheinland/', func,
+                batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']), subjects_selection=[0],
                 extra_args=['/home/robbert/phd-data/papers/uncertainty_paper/single_subject/rls/'])
 
-mdt.batch_apply(func, '/home/robbert/phd-data/hcp_mgh/',
-                batch_profile='HCP_MGH',
-                subjects_selection=['mgh_1003'],
+mdt.batch_apply('/home/robbert/phd-data/hcp_mgh/', func, batch_profile='HCP_MGH', subjects_selection=['mgh_1003'],
                 extra_args=['/home/robbert/phd-data/papers/uncertainty_paper/single_subject/hcp/'])

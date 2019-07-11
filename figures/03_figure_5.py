@@ -16,8 +16,6 @@ model_names = [
     'BinghamNODDI_r1',
     'Tensor',
     'CHARMED_r1',
-    # 'CHARMED_r2',
-    # 'CHARMED_r3'
 ]
 
 
@@ -29,9 +27,11 @@ def get_mle_std(output_dir, model_name):
     elif model_name == 'BallStick_r1':
         return maps['w_stick0.w.std']
     elif model_name == 'BallStick_r2':
-        return maps['FS.std']
+        # return maps['FS.std']
+        return maps['w_stick0.w.std']
     elif model_name == 'BallStick_r3':
-        return maps['FS.std']
+        # return maps['FS.std']
+        return maps['w_stick0.w.std']
     elif model_name == 'NODDI':
         return maps['w_ic.w.std']
     elif model_name == 'CHARMED_r1':
@@ -55,7 +55,7 @@ def get_inverse_snr_map(subject_info):
     return {'snr': snr, 'inverse_snr': 1/snr, 'mask': input_data.mask}
 
 
-snr_maps = mdt.batch_apply(get_inverse_snr_map, input_path)
+snr_maps = mdt.batch_apply(input_path, get_inverse_snr_map)
 outputs = mdt.run_function_on_batch_fit_output(
     lambda output_info: get_mle_std(output_info.output_path, output_info.model_name),
     output_path,
@@ -113,7 +113,7 @@ map_plot_options:
     show_title: null
     title: 'BallStick_in1 -
 
-      FS (std.)'
+      Stick0.w (std.)'
     title_spacing: null
   BallStick_r2:
     clipping: {use_max: false, use_min: false, vmax: 0.0, vmin: 0.0}
@@ -130,7 +130,7 @@ map_plot_options:
     show_title: null
     title: 'BallStick_in2 -
 
-      FS (std.)'
+      Stick0.w (std.)'
     title_spacing: null
   BallStick_r3:
     clipping: {use_max: true, use_min: true, vmax: 0.028, vmin: 0.0}
@@ -151,7 +151,7 @@ map_plot_options:
     show_title: null
     title: 'BallStick_in3 -
 
-      FS (std.)'
+      Stick0.w (std.)'
     title_spacing: null
   BinghamNODDI_r1:
     clipping: {use_max: false, use_min: false, vmax: 0.0, vmin: 0.0}

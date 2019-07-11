@@ -2,6 +2,7 @@ import glob
 import mdt
 import os
 from mdt.lib.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
+from mdt.lib.masking import generate_simple_wm_mask
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-11-01'
@@ -51,7 +52,7 @@ class RheinLandBatchProfile(SimpleBatchProfile):
                     protocol_fname = glob.glob(subject_pjoin('*prtcl'))[0]
                     protocol_loader = BatchFitProtocolLoader(subject_pjoin(), protocol_fname=protocol_fname)
 
-                    subjects.append(SimpleSubjectInfo(subject_pjoin(),
+                    subjects.append(SimpleSubjectInfo(data_folder, subject_pjoin(),
                                                       directory + '_' + resolution,
                                                       dwi_fname, protocol_loader, mask_fname))
 
@@ -60,9 +61,75 @@ class RheinLandBatchProfile(SimpleBatchProfile):
     def __str__(self):
         return 'Rheinland'
 
-
+'''batch fit all subjects'''
 mdt.batch_fit('/home/robbert/phd-data/rheinland/', model_names,
               batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']))
 
 mdt.batch_fit('/home/robbert/phd-data/hcp_mgh/', model_names,
               batch_profile='HCP_MGH')
+
+
+def func(subject_info):
+    subject_id = subject_info.subject_id
+
+    wm_mask = generate_simple_wm_mask(
+        os.path.join(subject_info.data_folder[:-1] + '_output', subject_id, 'Tensor', 'Tensor.FA.nii.gz'),
+        subject_info.get_input_data().mask,
+        threshold=0.3,
+        median_radius=3,
+        nmr_filter_passes=4)
+    mdt.write_nifti(wm_mask, os.path.join(subject_info.data_folder[:-1] + '_output', subject_id, 'wm_mask'))
+
+
+'''generate wm mask for all subjects'''
+mdt.batch_apply('/home/robbert/phd-data/rheinland/', func,
+                batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']))
+
+mdt.batch_apply('/home/robbert/phd-data/hcp_mgh/', func, batch_profile='HCP_MGH')
+
+
+
+nmr_samples = {
+    'BallStick_r1': 11000,
+    'BallStick_r2': 15000,
+    'BallStick_r3': 25000,
+    'NODDI': 15000,
+    'BinghamNODDI_r1': 20000,
+    'Tensor': 13000,
+    'CHARMED_r1': 17000,
+}
+
+
+def mcmc_sample(subject_info):
+    output_folder = subject_info.data_folder[:-1] + '_output'
+    subject_id = subject_info.subject_id
+
+    for model_name in model_names:
+        print(subject_id, model_name)
+
+        starting_point = mdt.fit_model(model_name,
+                                       subject_info.get_input_data(),
+                                       output_folder + '/' + subject_id)
+
+        with mdt.config_context('''
+            processing_strategies:
+                sampling:
+                    max_nmr_voxels: 5000
+        '''):
+            mdt.sample_model(model_name,
+                             subject_info.get_input_data(),
+                             output_folder + '/' + subject_id,
+                             nmr_samples=nmr_samples[model_name],
+                             initialization_data={'inits': starting_point},
+                             store_samples=False)
+
+
+# '''for first 10 subjects, also do sampling'''
+mdt.batch_apply('/home/robbert/phd-data/rheinland/', mcmc_sample,
+                batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']),
+                subjects_selection=range(10))
+
+mdt.batch_apply('/home/robbert/phd-data/hcp_mgh/', mcmc_sample,
+                batch_profile='HCP_MGH',
+                subjects_selection=[9])
+
