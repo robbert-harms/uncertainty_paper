@@ -58,7 +58,7 @@ def get_samples(dataset_name, model_name, voxel_volume_ind):
     elif model_name == 'BallStick_r2':
         return samples['w_stick0.w'][roi_ind] + samples['w_stick1.w'][roi_ind]
     elif model_name == 'NODDI':
-        return samples['w_ic.w'][roi_ind]
+        return samples['NODDI_IC.theta'][roi_ind]
     elif model_name == 'CHARMED_r1':
         return samples['w_res0.w'][roi_ind]
     elif model_name == 'CHARMED_r2':
@@ -77,7 +77,7 @@ def get_mle_results(dataset_name, model_name):
     elif model_name == 'BallStick_r2':
         return maps['FS'], maps['FS.std']
     elif model_name == 'NODDI':
-        return maps['w_ic.w'], maps['w_ic.w.std']
+        return maps['NODDI_IC.theta'], maps['NODDI_IC.theta.std']
     elif model_name == 'CHARMED_r1':
         return maps['FR'], maps['FR.std']
     elif model_name == 'CHARMED_r2':
@@ -99,7 +99,7 @@ def get_mcmc_results(dataset_name, model_name):
     elif model_name == 'BallStick_r2':
         return model_defined_maps['FS'], model_defined_maps['FS.std']
     elif model_name == 'NODDI':
-        return univariate_normal_maps['w_ic.w'], univariate_normal_maps['w_ic.w.std']
+        return univariate_normal_maps['NODDI_IC.theta'], univariate_normal_maps['NODDI_IC.theta.std']
     elif model_name == 'CHARMED_r1':
         return model_defined_maps['FR'], model_defined_maps['FR.std']
     elif model_name == 'CHARMED_r2':
@@ -136,8 +136,8 @@ def plot_histogram(ax, dataset_name, model_name, samples, mle, mle_std):
     ax.set_xlabel(map_titles[model_name] + ' (a.u.)')
     ax.set_ylabel('Frequency (a.u.)')
 
-    if ax.get_xlim()[1] > 1:
-        ax.set_xlim(ax.get_xlim()[0], 1)
+    # if ax.get_xlim()[1] > 1:
+    #     ax.set_xlim(ax.get_xlim()[0], 1)
 
     if dataset_name == 'rheinland' and model_name == 'BinghamNODDI_r1':
         ax.set_xlim(np.mean(samples) - 0.09, np.mean(samples) + 0.09)
@@ -148,33 +148,34 @@ def plot_histogram(ax, dataset_name, model_name, samples, mle, mle_std):
 
 def plot_maps(dataset_name, model_name, voxel_volume_ind, maps, out_name):
     scales = {'point_vmin': 0,
-              'point_vmax': 1,
+              'point_vmax': 3.14,
               'std_vmin': 0,
-              'std_vmax': 0.04}
+              'std_vmax': 3}
 
     if model_name == 'Tensor':
         scales['std_vmax'] = 0.15
 
-    maps['diff'] = np.abs(maps['mcmc'] - maps['mle'])
+    # maps['diff'] = np.abs(maps['mcmc'] - maps['mle'])
 
     plot_config = dedent('''
         font: {{family: sans-serif, size: 20}}
         maps_to_show: [mle, mle_std, mcmc, mcmc_std]
         map_plot_options:
           mle:
-            title: FR (MLE)
+            title: theta (MLE)
             scale: {{use_max: true, use_min: true, vmax: {point_vmax}, vmin: {point_vmin}}}
             colorbar_settings: {{round_precision: 2}}
           mle_std:
-            title: FR std. (MLE)
+            title: theta std. (MLE)
             scale: {{use_max: true, use_min: true, vmax: {std_vmax}, vmin: {std_vmin}}}
             colorbar_settings: {{round_precision: 3}}
+            clipping: {{use_max: true, use_min: false, vmax: 2.9, vmin: 0.0}}
           mcmc:
-            title: FR (MCMC)
+            title: theta (MCMC)
             scale: {{use_max: true, use_min: true, vmax: {point_vmax}, vmin: {point_vmin}}}
             colorbar_settings: {{round_precision: 2}}
           mcmc_std:
-            title: FR std. (MCMC)
+            title: theta std. (MCMC)
             scale: {{use_max: true, use_min: true, vmax: {std_vmax}, vmin: {std_vmin}}}
             colorbar_settings: {{round_precision: 3}}
     '''.format(map_title=map_titles[model_name], **scales))
@@ -222,8 +223,8 @@ def plot_maps(dataset_name, model_name, voxel_volume_ind, maps, out_name):
 
 def make_figure(dataset_name, model_name, voxel_volume_ind):
     samples = get_samples(dataset_name, model_name, voxel_volume_ind)
-    mle, mle_std = get_mle_results(dataset_name, model_name)
-    mcmc, mcmc_std = get_mcmc_results(dataset_name, model_name)
+    mle_theta, mle_theta_std = get_mle_results(dataset_name, model_name)
+    mcmc_theta, mcmc_theta_std = get_mcmc_results(dataset_name, model_name)
 
     img_output_pjoin = figure_output_pjoin.create_extended(
         '{}_{}_{}'.format(dataset_name, model_name, '_'.join(map(str, voxel_volume_ind))), make_dirs=True)
@@ -231,13 +232,16 @@ def make_figure(dataset_name, model_name, voxel_volume_ind):
     set_matplotlib_font_size(18)
     fig, ax = plt.subplots(1, 1)
     fig.set_size_inches(6.9, 7, forward=True)
-    plot_histogram(ax, dataset_name, model_name, samples, mle[voxel_volume_ind], mle_std[voxel_volume_ind])
+    plot_histogram(ax, dataset_name, model_name, samples, mle_theta[voxel_volume_ind], mle_theta_std[voxel_volume_ind])
     plt.show()
     # fig.tight_layout()
     # plt.savefig(img_output_pjoin('histogram.png'), dpi=80)
 
     skull = np.where(get_mle_results(dataset_name, 'BallStick_r1')[1] > 0.1)
-    maps = {'mle': mle, 'mle_std': mle_std, 'mcmc': mcmc, 'mcmc_std': mcmc_std}
+    maps = {#'mle': mle, 'mle_std': mle_std, 'mcmc': mcmc, 'mcmc_std': mcmc_std,
+            'mle': mle_theta, 'mle_std': mle_theta_std,
+            'mcmc': mcmc_theta, 'mcmc_std': mcmc_theta_std
+            }
     for m in maps.values():
         m[skull] = 0
 
@@ -264,7 +268,7 @@ model_names = [
 map_titles = {
     'BallStick_r1': 'FS',
     'BallStick_r2': 'FS',
-    'NODDI': 'FR',
+    'NODDI': 'Theta',
     'BinghamNODDI_r1': 'FR',
     'Tensor': 'FA',
     'CHARMED_r1': 'FR',
@@ -289,7 +293,7 @@ for model_name in model_names:
     # make_figure('mgh', model_name, (96, 84, 0))
     # make_figure('rheinland', model_name, (40, 79, 0))
     # make_figure('rheinland', model_name, (31, 43, 0))
-    make_figure('rheinland', model_name, (40, 10, 0))
+    make_figure('rheinland', model_name, (31, 53, 0))
 
     # for x, y in itertools.product(range(30, 80, 5), range(10, 50, 5)):
     #     print(x, y)

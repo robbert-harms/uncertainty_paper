@@ -3,8 +3,7 @@ import mdt
 import os
 from mdt.lib.batch_utils import SimpleBatchProfile, BatchFitProtocolLoader, SimpleSubjectInfo
 from mdt.lib.masking import generate_simple_wm_mask
-from mot.stats import gaussian_overlapping_coefficient
-import numpy as np
+
 
 __author__ = 'Robbert Harms'
 __date__ = '2018-11-01'
@@ -89,7 +88,7 @@ def func(subject_info, output_path):
         with mdt.config_context('''
             processing_strategies:
                 sampling:
-                    max_nmr_voxels: 5000
+                    max_nmr_voxels: 10000
         '''):
             mdt.sample_model(model_name,
                              subject_info.get_input_data(),

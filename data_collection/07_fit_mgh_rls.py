@@ -61,12 +61,14 @@ class RheinLandBatchProfile(SimpleBatchProfile):
     def __str__(self):
         return 'Rheinland'
 
+
 '''batch fit all subjects'''
 mdt.batch_fit('/home/robbert/phd-data/rheinland/', model_names,
-              batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']))
+              batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']),
+              subjects_selection=range(10))
 
 mdt.batch_fit('/home/robbert/phd-data/hcp_mgh/', model_names,
-              batch_profile='HCP_MGH')
+              batch_profile='HCP_MGH', subjects_selection=range(10))
 
 
 def func(subject_info):
@@ -83,9 +85,11 @@ def func(subject_info):
 
 '''generate wm mask for all subjects'''
 mdt.batch_apply('/home/robbert/phd-data/rheinland/', func,
-                batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']))
+                batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']),
+                subjects_selection=range(10))
 
-mdt.batch_apply('/home/robbert/phd-data/hcp_mgh/', func, batch_profile='HCP_MGH')
+mdt.batch_apply('/home/robbert/phd-data/hcp_mgh/', func,
+                batch_profile='HCP_MGH', subjects_selection=range(10))
 
 
 
@@ -124,12 +128,12 @@ def mcmc_sample(subject_info):
                              store_samples=False)
 
 
-# '''for first 10 subjects, also do sampling'''
+'''for first 10 subjects, also do sampling'''
 mdt.batch_apply('/home/robbert/phd-data/rheinland/', mcmc_sample,
                 batch_profile=RheinLandBatchProfile(resolutions_to_use=['data_ms20']),
                 subjects_selection=range(10))
 
 mdt.batch_apply('/home/robbert/phd-data/hcp_mgh/', mcmc_sample,
                 batch_profile='HCP_MGH',
-                subjects_selection=[9])
+                subjects_selection=range(9, 10))
 

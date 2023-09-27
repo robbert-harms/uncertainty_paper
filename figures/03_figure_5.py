@@ -275,50 +275,50 @@ zoom:
 
 ''')
 
-#
-# mdt.view_maps(results['rheinland'], config='''
-# colorbar_settings:
-#   location: right
-#   nmr_ticks: 4
-#   power_limits: [-2, 5]
-#   round_precision: 3
-#   visible: true
-# font: {family: sans-serif, size: 20}
-# grid_layout:
-# - Rectangular
-# - cols: null
-#   rows: 1
-#   spacings: {bottom: 0.03, hspace: 0.2, left: 0.01, right: 0.92, top: 0.94, wspace: 1.0}
-# map_plot_options:
-#   BallStick_r1:
-#     scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
-#     title: BallStick_in1
-#     title_spacing: 0.2
-#   BallStick_r2:
-#     scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
-#     title: BallStick_in2
-#     title_spacing: 0.2
-#   BallStick_r3:
-#     scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
-#     title: BallStick_in3
-#     title_spacing: 0.2
-#   BinghamNODDI_r1:
-#     scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
-#     title: Bingham-NODDI
-#     title_spacing: 0.2
-#   CHARMED_r1:
-#     scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
-#     title: CHARMED_in1
-#     title_spacing: 0.2
-#   inverse_snr:
-#     scale: {use_max: true, use_min: true, vmax: 0.15, vmin: 0.0}
-#     title: 1 / SNR
-#     title_spacing: 0.2
-# maps_to_show: [inverse_snr, BallStick_r1, BallStick_r2, BallStick_r3, BinghamNODDI_r1,
-#   CHARMED_r1]
-# title_spacing: 0.03
-# zoom:
-#   p0: {x: 17, y: 4}
-#   p1: {x: 89, y: 99}
-#
-# ''')
+
+mdt.view_maps(results['rheinland'], config='''
+colorbar_settings:
+  location: right
+  nmr_ticks: 4
+  power_limits: [-2, 5]
+  round_precision: 3
+  visible: true
+font: {family: sans-serif, size: 20}
+grid_layout:
+- Rectangular
+- cols: null
+  rows: 1
+  spacings: {bottom: 0.03, hspace: 0.2, left: 0.01, right: 0.92, top: 0.94, wspace: 1.0}
+map_plot_options:
+  BallStick_r1:
+    scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
+    title: BallStick_in1
+    title_spacing: 0.2
+  BallStick_r2:
+    scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
+    title: BallStick_in2
+    title_spacing: 0.2
+  BallStick_r3:
+    scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
+    title: BallStick_in3
+    title_spacing: 0.2
+  BinghamNODDI_r1:
+    scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
+    title: Bingham-NODDI
+    title_spacing: 0.2
+  CHARMED_r1:
+    scale: {use_max: true, use_min: true, vmax: 0.03, vmin: 0.0}
+    title: CHARMED_in1
+    title_spacing: 0.2
+  inverse_snr:
+    scale: {use_max: true, use_min: true, vmax: 0.15, vmin: 0.0}
+    title: 1 / SNR
+    title_spacing: 0.2
+maps_to_show: [inverse_snr, BallStick_r1, BallStick_r2, BallStick_r3, BinghamNODDI_r1,
+  CHARMED_r1]
+title_spacing: 0.03
+zoom:
+  p0: {x: 17, y: 4}
+  p1: {x: 89, y: 99}
+
+''')

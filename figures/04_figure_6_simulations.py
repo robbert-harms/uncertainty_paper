@@ -17,7 +17,6 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-input_pjoin = mdt.make_path_joiner('/home/robbert/programming/python/uncertainty_paper/data/snr_simulations/')
 output_base_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/snr_simulations/')
 figure_output_pjoin = mdt.make_path_joiner('/tmp/uncertainty_paper/snr_simulations/', make_dirs=True)
 
@@ -37,9 +36,9 @@ model_names = [
     'BallStick_r1',
     'BallStick_r2',
     'BallStick_r3',
-    'Tensor',
     'NODDI',
     'BinghamNODDI_r1',
+    'Tensor',
     'CHARMED_r1',
 ]
 

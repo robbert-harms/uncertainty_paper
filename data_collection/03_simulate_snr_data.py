@@ -1,3 +1,10 @@
+"""
+This script is meant to generate the simulation data needed for figure 4 and 5 of the article.
+
+Before running this script, please copy the protocol files "hcp_mgh_1003.prtcl" and "rheinland_v3a_1_2mm.prtcl"
+to the directory where you wish to store the simulation data and results. Set the same path here in this script.
+"""
+
 import os
 import numpy as np
 import mdt
@@ -8,12 +15,6 @@ __maintainer__ = 'Robbert Harms'
 __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
-"""
-This script is meant to generate the simulation data needed for figure 4 and 5 of the article.
-
-Before running this script, please copy the protocol files "hcp_mgh_1003.prtcl" and "rheinland_v3a_1_2mm.prtcl"
-to the directory where you wish to store the simulation data and results. Set the same path here in this script. 
-"""
 
 # the path to where you stored the protocol files.
 data_storage_path = r'/home/robbert/phd-data/papers/uncertainty_paper/snr_simulations/'
@@ -68,8 +69,7 @@ def create_parameter_combinations(nmr_voxels, randomize_parameter_indices, defau
     Returns:
         ndarray: a two dimensional list of parameter combinations
     """
-    grid = np.array(default_values)[None, :]
-    grid = np.repeat(grid, nmr_voxels, axis=0)
+    grid = np.repeat(np.array(default_values), nmr_voxels, axis=0)
 
     random_state = np.random.RandomState(seed)
 
@@ -252,7 +252,8 @@ simulations = {
 }
 
 
-def create_simulations(protocol_name, model_name):
+def create_multi_voxel_simulations(protocol_name, model_name):
+    """Create a simulation cube for multiple parameter combinations (multiple voxels)"""
     output_pjoin = pjoin.create_extended(protocol_name, model_name)
     if os.path.exists(output_pjoin()):
         return
@@ -290,4 +291,4 @@ def create_simulations(protocol_name, model_name):
 
 for protocol_name in protocols:
     for model_name in models:
-        create_simulations(protocol_name, model_name)
+        create_multi_voxel_simulations(protocol_name, model_name)

@@ -2,7 +2,7 @@ import os
 from subprocess import call
 import shutil
 from textwrap import dedent
-
+from mdt.lib.post_processing import DTIMeasures
 import mdt
 
 
@@ -13,30 +13,28 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-opt_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/hcp_mgh_output/')
-output_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/registration/')
-fa_reference = '/usr/share/data/fsl-mni152-templates/FMRIB58_FA_1mm.nii.gz'
-max_nmr_subjects = -1
+eddy_method = 'diff_eddy'
+# eddy_method = 'diff_eddy_repol'
+opt_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/group_study/MGH_ALLSUBJ/')
+output_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/registration/' + eddy_method + '/')
 
 maps_to_process = {
     'Tensor': ['Tensor.FA', 'Tensor.FA.std'],
-    'NODDI': ['w_ic.w', 'w_ic.w.std'],
-    'BinghamNODDI_r1': ['w_in0.w', 'w_in0.w.std'],
-    'CHARMED_r1': ['FR', 'FR.std'],
     'BallStick_r1': ['FS', 'FS.std'],
-    'BallStick_r2': ['FS', 'FS.std'],
-    'BallStick_r3': ['FS', 'FS.std']
+    # 'NODDI': ['w_ic.w', 'w_ic.w.std'],
+    'BinghamNODDI_r1': ['w_in0.w', 'w_in0.w.std'],
 }
 
 
 def copy_maps(results_pjoin, output_pjoin):
-    subjects = sorted(os.listdir(results_pjoin()))[:max_nmr_subjects]
+    subjects = sorted(os.listdir(results_pjoin()))
+    subjects = [el for el in subjects if el.startswith('mgh')]
 
     for subject in subjects:
         for model_name, maps in maps_to_process.items():
             for map_name in maps:
                 out_pjoin = output_pjoin.create_extended(subject, make_dirs=True)
-                shutil.copy(results_pjoin(subject, model_name, map_name + '.nii.gz'),
+                shutil.copy(results_pjoin(subject, eddy_method + '_mdt_output', model_name, map_name + '.nii.gz'),
                             out_pjoin('{}_{}.nii.gz'.format(model_name, map_name)))
 
 
@@ -64,20 +62,22 @@ def get_registration_commands(output_pjoin):
         parallel -j0 bash :::: <(ls *.sh)
 
     After that, remove the shell scripts.
+
+    These shell scripts require the docker container ``diannepat/fsl6`` to be present on your computer.
     """
     for subject in os.listdir(output_pjoin()):
         commands = dedent('''
             cd {subject_dir}
             
-            flirt -ref {template} -in {tensor_map} -omat affine.mat
-            fnirt --in={tensor_map} --aff=affine.mat --cout=nonlin_transf --config=FA_2_FMRIB58_1mm
-        '''.format(subject_dir=output_pjoin(subject), tensor_map='Tensor_Tensor.FA.nii.gz', template=fa_reference))
+            docker run -w /mnt -v `pwd`:/mnt diannepat/fsl6 flirt -ref /usr/local/fsl/data/standard/FMRIB58_FA_1mm.nii.gz -in {tensor_map} -omat affine.mat
+            docker run -w /mnt -v `pwd`:/mnt diannepat/fsl6 fnirt --in={tensor_map} --aff=affine.mat --cout=nonlin_transf --config=FA_2_FMRIB58_1mm
+        '''.format(subject_dir=output_pjoin(subject), tensor_map='Tensor_Tensor.FA.nii.gz'))
 
         for model_name, maps in maps_to_process.items():
             for map_name in maps:
                 commands += dedent('''
-                    applywarp --ref={template} --in={map_name} --warp=nonlin_transf --out=warped_{map_name}
-                '''.format(template=fa_reference, map_name=model_name + '_' + map_name + '.nii.gz'))
+                    docker run -w /mnt -v `pwd`:/mnt diannepat/fsl6 applywarp --ref=/usr/local/fsl/data/standard/FMRIB58_FA_1mm.nii.gz --in={map_name} --warp=nonlin_transf --out=warped_{map_name}        
+                '''.format(map_name=model_name + '_' + map_name + '.nii.gz'))
 
         with open(output_pjoin(subject + '_run.sh'), 'w') as f:
             f.writelines(commands)
@@ -91,7 +91,7 @@ def check_registration():
         maps[subject] = fa_map
         map_configs += '''
             {}:
-                scale: {{use_max: true, use_min: true, vmax: 0.5, vmin: 0.0}}
+                scale: {{use_max: true, use_min: true, vmax: 1, vmin: 0.0}}
         '''.format(subject)
 
     config = '''
@@ -124,4 +124,4 @@ def check_registration():
 # copy_maps(opt_pjoin, output_pjoin)
 # correct_mgh_maps(output_pjoin)
 # get_registration_commands(output_pjoin)
-check_registration()
+# check_registration()

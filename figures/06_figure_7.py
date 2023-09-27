@@ -8,8 +8,8 @@ __maintainer__ = 'Robbert Harms'
 __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
-output_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/registration/')
-mask = mdt.load_brain_mask('/usr/share/data/fsl-mni152-templates/FMRIB58_FA_1mm.nii.gz')
+output_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/registration/diff_eddy/')
+mask = mdt.load_brain_mask('/home/robbert/Downloads/fsl/data/standard/FMRIB58_FA_1mm.nii.gz')
 mask = binary_erosion(mask, iterations=1)
 
 maps = {}

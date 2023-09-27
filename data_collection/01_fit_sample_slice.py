@@ -11,15 +11,7 @@ input_path = r'/home/robbert/programming/python/uncertainty_paper/data/single_sl
 output_path = r'/home/robbert/phd-data/papers/uncertainty_paper/single_slice/'
 
 model_names = [
-    'BallStick_r1',
-    'BallStick_r2',
-    'BallStick_r3',
-    'NODDI',
     'BinghamNODDI_r1',
-    'Tensor',
-    'CHARMED_r1',
-    'CHARMED_r2',
-    'CHARMED_r3'
 ]
 
 nmr_samples = {

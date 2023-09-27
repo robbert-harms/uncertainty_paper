@@ -13,35 +13,45 @@ __email__ = 'robbert.harms@maastrichtuniversity.nl'
 __licence__ = 'LGPL v3'
 
 
-registration_pjoin = mdt.make_path_joiner('/home/robbert/phd-data/papers/uncertainty_paper/registration/')
+all_data = False
+eddy_type = 'diff_eddy'
 
-mask = mdt.load_brain_mask('/usr/share/data/fsl-mni152-templates/FMRIB58_FA_1mm.nii.gz')
+registration_pjoin = mdt.make_path_joiner(f'/home/robbert/phd-data/papers/uncertainty_paper/registration/{eddy_type}/')
+
+mask = mdt.load_brain_mask('/home/robbert/Documents/phd/own_papers/uncertainty_paper/FMRIB58_FA_1mm.nii.gz')
 mask = binary_erosion(mask, iterations=1)
 
-subjects_to_filter = [
-    # 'mgh_1002',
-    # 'mgh_1004',
-        'mgh_1008',
-        'mgh_1009',
-    # 'mgh_1012',
-        'mgh_1013',
-    # 'mgh_1015',
-        'mgh_1017',
-    # 'mgh_1021',
-    # 'mgh_1022',
-        'mgh_1032'
-]
+# /tmp/figure_8_eddy_repol_subjects_removed.png
+
+if all_data:
+    subjects_to_filter = []
+else:
+    subjects_to_filter = [
+        # 'mgh_1002',
+        # 'mgh_1004',
+        # 'mgh_1012',
+        # 'mgh_1015',
+        # 'mgh_1021',
+        # 'mgh_1022',
+
+        # used in the paper:
+            'mgh_1008',
+            'mgh_1009',
+            'mgh_1013',
+            'mgh_1017',
+            'mgh_1032'
+    ]
 
 # subjects_to_filter = []
 
 map_names = {
     'Tensor': 'Tensor.FA',
-    'NODDI': 'w_ic.w',
+    # 'NODDI': 'w_ic.w',
     'BinghamNODDI_r1': 'w_in0.w',
-    'CHARMED_r1': 'FR',
+    # 'CHARMED_r1': 'FR',
     'BallStick_r1': 'FS',
-    'BallStick_r2': 'FS',
-    'BallStick_r3': 'FS'
+    # 'BallStick_r2': 'FS',
+    # 'BallStick_r3': 'FS'
 }
 
 
@@ -51,7 +61,7 @@ def _get_subject_maps(model_name, map_name):
     for subject in os.listdir(registration_pjoin()):
         if subject in subjects_to_filter:
             continue
-        data = mdt.load_nifti(registration_pjoin(subject, 'warped_' + data_name)).get_data()
+        data = np.array(mdt.load_nifti(registration_pjoin(subject, 'warped_' + data_name)).get_data())
         map_list.append(data)
     return map_list
 
@@ -89,7 +99,7 @@ def weighted_average(model_name):
     return _weighted_avg_and_std(subject_volumes, weights)
 
 
-fa_average, _ = regular_average('BallStick_r1')
+fa_average, _ = regular_average('Tensor')
 wm_mask = generate_simple_wm_mask(fa_average, mask, threshold=0.3, median_radius=2, nmr_filter_passes=1)
 wm_mask = binary_erosion(wm_mask, iterations=2)
 
@@ -121,10 +131,10 @@ mdt.apply_mask(all_maps, mask)
 all_maps['std_diff_' + model_name] = np.ma.masked_where(wm_mask < 1, all_maps['std_diff_' + model_name])
 all_maps['point_diff_' + model_name] = np.ma.masked_where(wm_mask < 1, all_maps['point_diff_' + model_name])
 
-
 mdt.view_maps(
     all_maps,
-    # save_filename='/tmp/uncertainty_paper/bingham_noddi.png',
+    save_filename=f'/tmp/uncertainty_paper/figure_8_{"all_data" if all_data else "subjects_removed"}_{eddy_type}.png',
+    figure_options={'width': 1375, 'height': 1094, 'dpi': 80},
     config='''
 annotations:
 - arrow_width: 1.0
