@@ -18,7 +18,7 @@ eddy_type = 'diff_eddy'
 
 registration_pjoin = mdt.make_path_joiner(f'/home/robbert/phd-data/papers/uncertainty_paper/registration/{eddy_type}/')
 
-mask = mdt.load_brain_mask('/home/robbert/Documents/phd/own_papers/uncertainty_paper/FMRIB58_FA_1mm.nii.gz')
+mask = mdt.load_brain_mask('/home/robbert/Documents/phd/own_papers/FMRIB58_FA_1mm.nii.gz')
 mask = binary_erosion(mask, iterations=1)
 
 # /tmp/figure_8_eddy_repol_subjects_removed.png

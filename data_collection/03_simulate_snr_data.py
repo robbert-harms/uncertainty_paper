@@ -30,15 +30,15 @@ protocols = [
 
 # The models for which we want to simulate the data
 models = [
-    'BallStick_r1',
-    'BallStick_r2',
-    'BallStick_r3',
-    'NODDI',
+    # 'BallStick_r1',
+    # 'BallStick_r2',
+    # 'BallStick_r3',
+    # 'NODDI',
     'BinghamNODDI_r1',
-    'Tensor',
-    'CHARMED_r1',
-    'CHARMED_r2',
-    'CHARMED_r3'
+    # 'Tensor',
+    # 'CHARMED_r1',
+    # 'CHARMED_r2',
+    # 'CHARMED_r3'
 ]
 
 # The different SNR's we wish to simulate. Each additional SNR will generate a copy of the simulated data with
@@ -92,6 +92,21 @@ def prepare_noddi_params(params_cube):
 
     params_cube[:, param_names.index('w_ec.w')] = w_ec_w
     params_cube[:, param_names.index('w_ic.w')] = w_ic_w
+
+
+def prepare_binghamnoddi_params(params_cube):
+    """Normalizes the w_ic.w and w_ec.w if > 1, else leaves it as is."""
+    param_names = mdt.get_model('BinghamNODDI_r1')().get_free_param_names()
+
+    w_in0_w = params_cube[:, param_names.index('w_in0.w')]
+    w_en0_w = params_cube[:, param_names.index('w_en0.w')]
+
+    summed = w_in0_w + w_en0_w
+    w_en0_w[summed > 1] = (w_en0_w / summed)[summed > 1]
+    w_in0_w[summed > 1] = (w_in0_w / summed)[summed > 1]
+
+    params_cube[:, param_names.index('w_en0.w')] = w_en0_w
+    params_cube[:, param_names.index('w_in0.w')] = w_in0_w
 
 
 def prepare_charmed_r1_params(params_cube):
@@ -187,8 +202,8 @@ simulations = {
         # ['S0.s0', 'w_ic.w', 'NODDI_IC.theta', 'NODDI_IC.phi', 'NODDI_IC.kappa', 'w_ec.w']
         randomize_parameters=['w_ic.w', 'NODDI_IC.theta', 'NODDI_IC.phi', 'NODDI_IC.kappa', 'w_ec.w'],
         prepare_params_cube_cb=prepare_noddi_params,
-        lower_bounds=[1e2, 0.2, 0, 0, 0.1, 0.2],
-        upper_bounds=[1e5, 0.8, np.pi, np.pi, 60, 0.8]
+        lower_bounds=[1e2, 0.2, 0,     0,     0.1, 0.2],
+        upper_bounds=[1e5, 0.8, np.pi, np.pi, 60,  0.8]
     ),
     'BinghamNODDI_r1': dict(
         # Available parameters:
@@ -196,7 +211,7 @@ simulations = {
         # 'BinghamNODDI_IN0.k1', 'BinghamNODDI_IN0.kw', 'w_en0.w']
         randomize_parameters=['w_in0.w', 'BinghamNODDI_IN0.theta', 'BinghamNODDI_IN0.phi', 'BinghamNODDI_IN0.psi',
                               'BinghamNODDI_IN0.k1', 'BinghamNODDI_IN0.kw', 'w_en0.w'],
-        prepare_params_cube_cb=prepare_noddi_params,
+        prepare_params_cube_cb=prepare_binghamnoddi_params,
         lower_bounds=[1e2, 0.2, 0,     0,     0,     0.1, 1.1, 0.2],
         upper_bounds=[1e5, 0.8, np.pi, np.pi, np.pi, 60,  60,  0.8]
     ),
